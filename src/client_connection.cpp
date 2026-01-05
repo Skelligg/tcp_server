@@ -1,12 +1,16 @@
 #include "client_connection.hpp"
+#include "protocols.hpp"
 #include "socket.hpp"
+#include <cstdint>
+#include <cstring>
 #include <iostream>
 #include <stdexcept>
 #include <sys/socket.h>
 #include <utility>
 #include <vector>
 
-ClientConnection::ClientConnection(Socket s) : s_{std::move(s)} {}
+ClientConnection::ClientConnection(Socket s)
+    : s_{std::move(s)}, receiveBuffer_{} {}
 
 void ClientConnection::recvSome() {
   std::vector<char> buffer(1024);
@@ -22,13 +26,26 @@ void ClientConnection::recvSome() {
   }
 }
 
-void ClientConnection::sendString(const std::string &msg) {
-  auto bytesReceived{send(s_.fd(), msg.data(), msg.size(), 0)};
-  if (bytesReceived > 0) {
-    std::cout << "client: message sent" << '\n';
-  } else if (bytesReceived == 0) {
-    std::cout << "client: closed connection" << '\n';
-  } else {
-    throw std::runtime_error("client: connection failed");
+void ClientConnection::sendMsg(const MessageType type, const std::string &msg) {
+  constexpr std::size_t headerSize{sizeof(MessageHeader)};
+  const std::size_t totalSize{headerSize + msg.size()};
+
+  std::size_t bytesLeft{totalSize};
+
+  MessageHeader header{htons(static_cast<uint16_t>(type)), htons(msg.size())};
+
+  std::vector<char> buffer(totalSize);
+  std::memcpy(buffer.data(), &header, headerSize);
+  std::memcpy(buffer.data() + sizeof(header), msg.data(), msg.size());
+  size_t bytesSent{0};
+
+  while (bytesSent < totalSize) {
+    ssize_t n = send(s_.fd(), buffer.data() + bytesSent, bytesLeft, 0);
+    if (n == -1)
+      throw std::system_error(errno, std::system_category(), "send failed");
+
+    bytesSent += n;
+    bytesLeft -= n;
   }
+  std::cout << "server: sent " << bytesSent << " bytes" << '\n';
 }
