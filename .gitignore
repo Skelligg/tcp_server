@@ -3,3 +3,7 @@ build/
 *.obj
 *.exe
 
+.idea/
+.cache/
+.DS_Store
+
