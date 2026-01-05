@@ -48,6 +48,13 @@ bool TcpServer::tryBindAndListen(addrinfo *p) {
   if (s.fd() == -1)
     return false;
 
+  if (p->ai_family == AF_INET6) {
+    int no = 0;
+    if (setsockopt(s.fd(), IPPROTO_IPV6, IPV6_V6ONLY, &no, sizeof(no)) == -1) {
+      return false;
+    }
+  }
+
   int yes{1};
   if (setsockopt(s.fd(), SOL_SOCKET, SO_REUSEADDR, &yes, sizeof(int)) == -1)
     return false;
