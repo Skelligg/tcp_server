@@ -10,7 +10,7 @@ public:
   explicit ClientConnection(Socket s);
 
   void sendMsg(const MessageType type, const std::string &data);
-  void recvSome();
+  void recvMsg();
   int fd() const { return s_.fd(); }
 
 private:
