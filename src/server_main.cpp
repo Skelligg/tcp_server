@@ -10,9 +10,9 @@ int main() {
   std::cout << "server: running on port 8080" << '\n';
   while (true) {
 
-    ClientConnection client{server.acceptConnection()};
-    std::string toSend{"1\n"};
-    client.sendMsg(MessageType::PING, toSend);
+    ClientConnection connectedClient{server.acceptConnection()};
+    std::string toSend{"OK"};
+    connectedClient.sendMsg(MessageType::PING, toSend);
     break;
   }
 

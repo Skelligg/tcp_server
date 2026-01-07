@@ -30,6 +30,7 @@ void ClientConnection::recvMsg() {
                           reinterpret_cast<std::byte *>(buffer.data()),
                           reinterpret_cast<std::byte *>(buffer.data()) + n);
 
+    std::cout << "client : received message" << '\n';
     while (true) {
       if (READING_HEADER &&
           (receiveBuffer_.size() - readOffset) >= MessageHeaderSize) {
@@ -45,6 +46,9 @@ void ClientConnection::recvMsg() {
 
         readOffset += MessageHeaderSize;
 
+        std::cout << "type: " << header.type << '\n';
+        std::cout << "length: " << header.length << '\n';
+
         READING_HEADER = false;
         READING_BODY = true;
       } else
@@ -57,7 +61,7 @@ void ClientConnection::recvMsg() {
             reinterpret_cast<const char *>(receiveBuffer_.data() + readOffset);
 
         std::string msg{data, data + header.length};
-        std::cout << "server : msg received: " << msg << '\n';
+        std::cout << "body: \"" << msg << "\"" << '\n';
         readOffset += header.length;
         READING_BODY = false;
         READING_HEADER = true;
@@ -70,6 +74,9 @@ void ClientConnection::recvMsg() {
                            receiveBuffer_.begin() + readOffset);
       readOffset = 0;
     }
+
+    if (receiveBuffer_.empty())
+      break;
   };
 }
 

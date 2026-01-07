@@ -4,4 +4,4 @@
 #include <netdb.h>
 #include <string>
 
-AddrInfo resolveAddress(std::string &port);
+AddrInfo resolveAddress(const std::string &port, const std::string &host = "");
