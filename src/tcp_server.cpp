@@ -27,9 +27,9 @@ void TcpServer::start() {
 
 ClientConnection TcpServer::acceptConnection() {
   sockaddr_storage theirAddr;
-  socklen_t sinSize{sizeof(theirAddr)};
+  socklen_t addrSize{sizeof(theirAddr)};
 
-  Socket s{accept(serverSocket_.fd(), (sockaddr *)&theirAddr, &sinSize)};
+  Socket s{accept(serverSocket_.fd(), (sockaddr *)&theirAddr, &addrSize)};
   if (s.fd() == -1)
     throw std::system_error(errno, std::system_category(), "accept");
 

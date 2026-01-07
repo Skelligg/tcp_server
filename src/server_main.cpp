@@ -13,6 +13,11 @@ int main() {
     ClientConnection connectedClient{server.acceptConnection()};
     std::string toSend{"OK"};
     connectedClient.sendMsg(MessageType::PING, toSend);
+    std::string toSend1{"MICHAEL"};
+    connectedClient.sendMsg(MessageType::PING, toSend1);
+    std::string toSend2{"IT WORKS!"};
+    connectedClient.sendMsg(MessageType::PING, toSend2);
+
     break;
   }
 
