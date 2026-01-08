@@ -4,6 +4,7 @@
 #include <cstdint>
 #include <cstring>
 #include <iostream>
+#include <netinet/in.h>
 #include <stdexcept>
 #include <sys/socket.h>
 #include <system_error>
@@ -23,8 +24,18 @@ void ClientConnection::recvMsg() {
   while (true) {
     ssize_t n{recv(s_.fd(), buffer.data(), buffer.size(), 0)};
 
-    if (n == -1)
-      throw std::system_error(errno, std::system_category(), "recv failed");
+    if (n == -1) {
+      if (errno == EAGAIN || errno == EWOULDBLOCK) {
+        break;
+      } else
+        throw std::system_error(errno, std::system_category(), "recv failed");
+    }
+
+    if (n == 0) {
+      // Client disconnected
+      std::cout << "client disconnected\n";
+      break;
+    }
 
     receiveBuffer_.insert(receiveBuffer_.end(),
                           reinterpret_cast<std::byte *>(buffer.data()),

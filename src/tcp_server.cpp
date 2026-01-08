@@ -1,6 +1,9 @@
 #include <arpa/inet.h>
+#include <fcntl.h>
 #include <netdb.h>
+#include <netinet/in.h>
 #include <stdexcept>
+#include <sys/epoll.h>
 #include <sys/socket.h>
 #include <system_error>
 
@@ -10,14 +13,24 @@
 #include "utils.hpp"
 
 TcpServer::TcpServer(std::string port, int backlog, sa_family_t ss_family)
-    : port_{port}, backlog_{backlog}, ss_family_{ss_family}, serverSocket_{-1} {
-}
+    : port_{port}, backlog_{backlog}, ss_family_{ss_family},
+      serverSocket_{-1}, epoll_{-1}, clients_{} {}
 
 void TcpServer::start() {
   auto addr{resolveAddress(port_)};
 
   for (auto p{addr.get()}; p != NULL; p = p->ai_next) {
     if (tryBindAndListen(p)) {
+      Socket epSocket{epoll_create1(0)};
+      if (epSocket.fd() == -1)
+        throw std::system_error(errno, std::system_category(), "socket");
+
+      epoll_ = std::move(epSocket);
+      epoll_event ev{};
+      ev.events = EPOLLIN;
+      ev.data.fd = serverSocket_.fd();
+      epoll_ctl(epoll_.fd(), EPOLL_CTL_ADD, serverSocket_.fd(), &ev);
+
       return;
     }
   }
@@ -25,7 +38,27 @@ void TcpServer::start() {
   throw std::runtime_error("Failed to bind to any address");
 }
 
-ClientConnection TcpServer::acceptConnection() {
+void TcpServer::run() {
+  int MAX_EVENTS{10};
+  epoll_event events[MAX_EVENTS];
+  int nfds;
+  while (true) {
+    nfds = epoll_wait(epoll_.fd(), events, MAX_EVENTS, -1);
+    if (nfds == -1) {
+      throw std::runtime_error("epoll_wait failed");
+    }
+
+    for (int n{0}; n < nfds; ++n) {
+      if (events[n].data.fd == serverSocket_.fd()) {
+        acceptConnection();
+      } else {
+        handleClientConnection(events[n].data.fd, events[n].events);
+      }
+    }
+  }
+}
+
+void TcpServer::acceptConnection() {
   sockaddr_storage theirAddr;
   socklen_t addrSize{sizeof(theirAddr)};
 
@@ -39,7 +72,31 @@ ClientConnection TcpServer::acceptConnection() {
             theirAddrName, sizeof theirAddrName);
   printf("server: got connection from %s\n", theirAddrName);
 
-  return ClientConnection{std::move(s)};
+  fcntl(s.fd(), F_SETFL, O_NONBLOCK);
+
+  epoll_event ev{};
+  ev.events = EPOLLIN;
+  ev.data.fd = s.fd();
+  epoll_ctl(epoll_.fd(), EPOLL_CTL_ADD, s.fd(), &ev);
+
+  clients_.emplace(s.fd(), ClientConnection(std::move(s)));
+}
+
+void TcpServer::handleClientConnection(int fd, uint32_t events) {
+  auto it{clients_.find(fd)};
+  if (it == clients_.end()) {
+    return;
+  }
+
+  ClientConnection &client = it->second;
+
+  if (events & EPOLLIN) {
+    client.recvMsg();
+  }
+
+  // if (events & EPOLLOUT) {
+
+  // }
 }
 
 bool TcpServer::tryBindAndListen(addrinfo *p) {
@@ -64,6 +121,8 @@ bool TcpServer::tryBindAndListen(addrinfo *p) {
 
   if (listen(s.fd(), backlog_) == -1)
     return false;
+
+  fcntl(s.fd(), F_SETFL, O_NONBLOCK);
 
   serverSocket_ = std::move(s);
   return true;

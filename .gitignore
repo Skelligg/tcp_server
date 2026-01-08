@@ -2,8 +2,9 @@ build/
 *.o
 *.obj
 *.exe
+build-linux/
 
 .idea/
 .cache/
 .DS_Store
-
+.clangd

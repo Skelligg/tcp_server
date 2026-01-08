@@ -1,4 +1,5 @@
 #include "client_connection.hpp"
+#include "protocols.hpp"
 #include "tcp_client.hpp"
 #include <iostream>
 
@@ -8,8 +9,8 @@ int main() {
 
   ClientConnection connectedClient{client.connect()};
   std::cout << "client: connected to server on port 8080" << '\n';
-
-  connectedClient.recvMsg();
+  std::string msg{"HEY!"};
+  connectedClient.sendMsg(MessageType::PING, msg);
 
   return 0;
 }
