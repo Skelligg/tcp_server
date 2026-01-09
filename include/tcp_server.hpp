@@ -25,6 +25,7 @@ private:
 
   void acceptConnection();
   void handleClientConnection(int fd, uint32_t events);
+  void removeClient(int fd);
 
   bool tryBindAndListen(addrinfo *p);
   inline void *get_in_addr(sockaddr *sa) {

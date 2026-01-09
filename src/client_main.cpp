@@ -9,8 +9,10 @@ int main() {
 
   ClientConnection connectedClient{client.connect()};
   std::cout << "client: connected to server on port 8080" << '\n';
-  std::string msg{"HEY!"};
-  connectedClient.sendMsg(MessageType::PING, msg);
+  std::string msg{"PING"};
+  connectedClient.queueMsg(MessageType::PING, msg);
+  connectedClient.sendMsg();
+  connectedClient.recvMsg();
 
   return 0;
 }

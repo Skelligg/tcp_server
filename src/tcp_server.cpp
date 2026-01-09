@@ -1,5 +1,6 @@
 #include <arpa/inet.h>
 #include <fcntl.h>
+#include <iostream>
 #include <netdb.h>
 #include <netinet/in.h>
 #include <stdexcept>
@@ -8,6 +9,7 @@
 #include <system_error>
 
 #include "client_connection.hpp"
+#include "protocols.hpp"
 #include "socket.hpp"
 #include "tcp_server.hpp"
 #include "utils.hpp"
@@ -91,12 +93,73 @@ void TcpServer::handleClientConnection(int fd, uint32_t events) {
   ClientConnection &client = it->second;
 
   if (events & EPOLLIN) {
-    client.recvMsg();
+    auto response{client.recvMsg()};
+
+    switch (response) {
+    case RecvResult::WouldBlock:
+      break;
+
+    case RecvResult::MessageRead: {
+      std::string msg{"PONG"};
+      client.queueMsg(MessageType::PING, msg);
+      epoll_event ev{};
+      ev.events = EPOLLIN | EPOLLOUT;
+      ev.data.fd = fd;
+      epoll_ctl(epoll_.fd(), EPOLL_CTL_MOD, fd, &ev);
+      break;
+    }
+
+    case RecvResult::PartialMessageRead:
+      break;
+
+    case RecvResult::Disconnected:
+      removeClient(fd);
+      break;
+
+    case RecvResult::Error:
+      removeClient(fd);
+      break;
+    }
   }
 
-  // if (events & EPOLLOUT) {
+  if (events & EPOLLOUT) {
+    auto response{client.sendMsg()};
 
-  // }
+    switch (response) {
+    case SendResult::WouldBlock:
+      break;
+
+    case SendResult::MessageSent: {
+      epoll_event ev{};
+      ev.events = EPOLLIN;
+      epoll_ctl(epoll_.fd(), EPOLL_CTL_MOD, fd, &ev);
+      break;
+    }
+
+    case SendResult::PartialSend:
+      break;
+
+    case SendResult::Disconnected:
+      removeClient(fd);
+      break;
+
+    case SendResult::Error:
+      removeClient(fd);
+      break;
+    }
+  }
+
+  if (events & (EPOLLHUP | EPOLLERR)) {
+    removeClient(fd);
+  }
+}
+
+void TcpServer::removeClient(int fd) {
+  epoll_event ev{};
+  epoll_ctl(fd, EPOLL_CTL_DEL, fd, &ev);
+
+  auto it{clients_.find(fd)};
+  clients_.erase(it);
 }
 
 bool TcpServer::tryBindAndListen(addrinfo *p) {
