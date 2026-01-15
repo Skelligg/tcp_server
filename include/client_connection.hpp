@@ -5,6 +5,8 @@
 #include <string>
 #include <vector>
 
+enum class ReadState { Header, Body };
+
 enum class RecvResult {
   WouldBlock,
   MessageRead,
@@ -34,4 +36,6 @@ private:
   std::vector<std::byte> receiveBuffer_;
   std::vector<std::byte> sendBuffer_;
   size_t sendOffset_;
+  size_t readOffset_;
+  ReadState readState_;
 };

@@ -14,14 +14,13 @@
 #include <vector>
 
 ClientConnection::ClientConnection(Socket s)
-    : s_{std::move(s)}, receiveBuffer_{}, sendBuffer_{}, sendOffset_{0} {}
+    : s_{std::move(s)}, receiveBuffer_{}, sendBuffer_{}, sendOffset_{0},
+      readOffset_{0}, readState_(ReadState::Header) {}
 
 RecvResult ClientConnection::recvMsg() {
   std::vector<char> buffer(1024);
   MessageHeader header;
-  bool READING_HEADER{true};
-  bool READING_BODY{false};
-  size_t readOffset{0};
+  bool messageRead{false};
 
   ssize_t n{recv(s_.fd(), buffer.data(), buffer.size(), 0)};
 
@@ -44,9 +43,9 @@ RecvResult ClientConnection::recvMsg() {
 
   std::cout << "client : received message" << '\n';
   while (true) {
-    if (READING_HEADER &&
-        (receiveBuffer_.size() - readOffset) >= MessageHeaderSize) {
-      std::memcpy(&header, receiveBuffer_.data() + readOffset,
+    if (readState_ == ReadState::Header &&
+        (receiveBuffer_.size() - readOffset_) >= MessageHeaderSize) {
+      std::memcpy(&header, receiveBuffer_.data() + readOffset_,
                   sizeof(MessageHeader));
       header.length = ntohs(header.length);
       header.type = ntohs(header.type);
@@ -56,38 +55,39 @@ RecvResult ClientConnection::recvMsg() {
       if (header.length > 1024)
         throw std::runtime_error{"server: msg length is too big"};
 
-      readOffset += MessageHeaderSize;
+      readOffset_ += MessageHeaderSize;
 
       std::cout << "type: " << header.type << '\n';
       std::cout << "length: " << header.length << '\n';
 
-      READING_HEADER = false;
-      READING_BODY = true;
+      readState_ = ReadState::Body;
     } else
       break;
 
-    if (READING_BODY && (receiveBuffer_.size() - readOffset) >= header.length) {
+    if (readState_ == ReadState::Body &&
+        (receiveBuffer_.size() - readOffset_) >= header.length) {
 
       const auto *data =
-          reinterpret_cast<const char *>(receiveBuffer_.data() + readOffset);
+          reinterpret_cast<const char *>(receiveBuffer_.data() + readOffset_);
 
       std::string msg{data, data + header.length};
       std::cout << "body: \"" << msg << "\"" << '\n';
-      readOffset += header.length;
-      READING_BODY = false;
-      READING_HEADER = true;
+      readOffset_ += header.length;
+      readState_ = ReadState::Header;
+      messageRead = true;
     } else
       break;
-
-    if (readOffset > 0) {
-      receiveBuffer_.erase(receiveBuffer_.begin(),
-                           receiveBuffer_.begin() + readOffset);
-      readOffset = 0;
-    }
-
-    if (receiveBuffer_.empty())
-      return RecvResult::MessageRead;
   };
+
+  if (readOffset_ > 0) {
+    receiveBuffer_.erase(receiveBuffer_.begin(),
+                         receiveBuffer_.begin() + readOffset_);
+    readOffset_ = 0;
+  }
+
+  if (messageRead) {
+    return RecvResult::MessageRead;
+  }
 
   return RecvResult::PartialMessageRead;
 }

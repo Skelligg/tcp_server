@@ -37,3 +37,6 @@ add_executable(tcp_client
 target_link_libraries(tcp_client
     PRIVATE tcp_core
 )
+
+enable_testing()
+add_subdirectory(tests)
