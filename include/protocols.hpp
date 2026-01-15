@@ -10,3 +10,18 @@ struct MessageHeader {
 constexpr size_t MessageHeaderSize{sizeof(MessageHeader)};
 
 enum class MessageType : uint16_t { CHAT = 1, PING = 2, ERROR = 3 };
+
+enum class RecvResult {
+  WouldBlock,
+  MessageRead,
+  Disconnected,
+  Error,
+  PartialMessageRead
+};
+enum class SendResult {
+  WouldBlock,
+  MessageSent,
+  PartialSend,
+  Disconnected,
+  Error
+};
