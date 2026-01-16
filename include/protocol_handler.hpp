@@ -11,8 +11,9 @@ class ProtocolHandler {
 public:
   ProtocolHandler();
   void pushIncoming(std::span<const std::byte> buffer);
-  void tryReadMessage();
-  SendResult sendBytes();
+  RecvResult tryReadMessage();
+  std::span<const std::byte> getOutgoingBytes();
+  SendResult adjustSendOffset(ssize_t bytesSent);
   void queueOutgoing(const MessageType type, const std::string &data);
 
 private:
@@ -21,4 +22,5 @@ private:
   size_t sendOffset_;
   size_t readOffset_;
   ReadState readState_;
+  MessageHeader currentHeader_;
 };

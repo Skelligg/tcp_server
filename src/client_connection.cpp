@@ -19,8 +19,6 @@ ClientConnection::ClientConnection(Socket s)
 
 RecvResult ClientConnection::recvMsg() {
   std::vector<std::byte> buffer{1024};
-  MessageHeader header;
-  bool messageRead{false};
 
   ssize_t n{recv(s_.fd(), buffer.data(), buffer.size(), 0)};
 
@@ -39,12 +37,13 @@ RecvResult ClientConnection::recvMsg() {
 
   protocolHandler_.pushIncoming(
       std::span{buffer.data(), static_cast<size_t>(n)});
-  return RecvResult::MessageRead;
+
+  return protocolHandler_.tryReadMessage();
 }
 
 SendResult ClientConnection::sendMsg() {
-  ssize_t n{send(s_.fd(), sendBuffer_.data() + sendOffset_,
-                 sendBuffer_.size() - sendOffset_, 0)};
+  std::span<std::byte> sendBuffer_{protocolHandler_.getOutgoingBytes()};
+  ssize_t n{send(s_.fd(), sendBuffer_.data(), sendBuffer_.size(), 0)};
   if (n == -1) {
     if (errno == EAGAIN || errno == EWOULDBLOCK) {
       return SendResult::WouldBlock;
@@ -56,14 +55,8 @@ SendResult ClientConnection::sendMsg() {
   if (n == 0) {
     return SendResult::Disconnected;
   }
-  sendOffset_ += n;
 
-  if (sendOffset_ == sendBuffer_.size()) {
-    sendBuffer_.clear();
-    sendOffset_ = 0;
-    return SendResult::MessageSent;
-  }
-  return SendResult::PartialSend;
+  return protocolHandler_.adjustSendOffset(n);
 }
 
 void ClientConnection::queueMsg(const MessageType type,
