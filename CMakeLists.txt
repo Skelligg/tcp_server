@@ -7,6 +7,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 add_library(tcp_core
     src/client_connection.cpp
+    src/protocol_handler.cpp
     src/tcp_server.cpp
     src/tcp_client.cpp
     src/utils.cpp
@@ -38,5 +39,10 @@ target_link_libraries(tcp_client
     PRIVATE tcp_core
 )
 
-enable_testing()
-add_subdirectory(tests)
+option(BUILD_TESTS "Build tests" OFF)
+
+if (BUILD_TESTS)
+  enable_testing()
+  add_subdirectory(tests)
+endif()
+

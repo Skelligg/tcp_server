@@ -42,7 +42,7 @@ RecvResult ClientConnection::recvMsg() {
 }
 
 SendResult ClientConnection::sendMsg() {
-  std::span<std::byte> sendBuffer_{protocolHandler_.getOutgoingBytes()};
+  std::span<const std::byte> sendBuffer_{protocolHandler_.getOutgoingBytes()};
   ssize_t n{send(s_.fd(), sendBuffer_.data(), sendBuffer_.size(), 0)};
   if (n == -1) {
     if (errno == EAGAIN || errno == EWOULDBLOCK) {
