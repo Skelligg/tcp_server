@@ -2,12 +2,24 @@
 
 #include <cstddef>
 #include <cstdint>
-struct MessageHeader {
+#include <vector>
+
+struct ProtocolHeader {
   uint16_t type;
   uint16_t length;
+  // to add/change later
+  // protocol name
+  // length to buffer_size
+  // major version & minor version
+  // reserved - space for future protocol changes
 };
 
-constexpr size_t MessageHeaderSize{sizeof(MessageHeader)};
+struct Packet {
+  ProtocolHeader header;
+  std::vector<std::byte> body;
+};
+
+constexpr size_t ProtocolHeaderSize{sizeof(ProtocolHeader)};
 
 enum class MessageType : uint16_t { CHAT = 1, PING = 2, ERROR = 3 };
 

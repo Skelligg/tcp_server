@@ -1,6 +1,7 @@
 #pragma once
 
 #include "protocols.hpp"
+#include <optional>
 #include <span>
 #include <string>
 #include <vector>
@@ -11,7 +12,7 @@ class ProtocolHandler {
 public:
   ProtocolHandler();
   void pushIncoming(std::span<const std::byte> buffer);
-  RecvResult tryReadMessage();
+  std::optional<Packet> tryReadPacket();
   std::span<const std::byte> getOutgoingBytes();
   SendResult adjustSendOffset(ssize_t bytesSent);
   void queueOutgoing(const MessageType type, const std::string &data);
@@ -22,5 +23,5 @@ private:
   size_t sendOffset_;
   size_t readOffset_;
   ReadState readState_;
-  MessageHeader currentHeader_;
+  Packet currentPacket_;
 };

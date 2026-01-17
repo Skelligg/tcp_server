@@ -38,7 +38,16 @@ RecvResult ClientConnection::recvMsg() {
   protocolHandler_.pushIncoming(
       std::span{buffer.data(), static_cast<size_t>(n)});
 
-  return protocolHandler_.tryReadMessage();
+  auto packetOpt{protocolHandler_.tryReadPacket()};
+
+  if (packetOpt) {
+    const Packet &packet{*packetOpt};
+    std::string msg(reinterpret_cast<const char *>(packet.body.data()),
+                    packet.header.length);
+    std::cout << "Received packet body: " << msg << '\n';
+    return RecvResult::MessageRead;
+  } else
+    return RecvResult::PartialMessageRead;
 }
 
 SendResult ClientConnection::sendMsg() {
