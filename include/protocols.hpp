@@ -24,7 +24,7 @@ constexpr size_t ProtocolHeaderSize{sizeof(ProtocolHeader)};
 
 enum class MessageType : uint16_t { CHAT = 1, PING = 2, ERROR = 3 };
 
-[[nodiscard]] inline MessageType getMessageType(uint16_t type) {
+[[nodiscard]] inline MessageType convertToMessageType(uint16_t type) {
   switch (type) {
   case static_cast<uint16_t>(MessageType::CHAT):
     return MessageType::CHAT;
