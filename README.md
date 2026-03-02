@@ -39,7 +39,7 @@ These constraints are intentional: they force understanding of syscalls, TCP beh
 
 ✔ Stage 1 — Blocking TCP Server \
 ✔ Stage 2 — Binary protocol & framing \
-✔ Stage 3 — Non-blocking I/O + epoll (in progress) 
+✔ Stage 3 — Non-blocking I/O + epoll
 
 ❌ Multithreading (planned) \
 ❌ Instrumentation (planned)
