@@ -239,6 +239,6 @@ It maps directly to:
 
 ## Design Philosophy
 
-If I cannot explain what each syscall does, you are not ready to abstract it.
+If I cannot explain what each syscall does, I am not ready to abstract it.
 
 This repository prioritises clarity, correctness, and explicit design decisions over convenience.
